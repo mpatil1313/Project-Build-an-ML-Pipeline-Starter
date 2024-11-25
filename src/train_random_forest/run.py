@@ -17,7 +17,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OrdinalEncoder, FunctionTransformer
+from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, FunctionTransformer
 
 import wandb
 from sklearn.ensemble import RandomForestRegressor
@@ -44,7 +44,7 @@ def go(args):
     run.config.update(args)
 
     # Get the Random Forest configuration and update W&B
-    with open(args.rf_config) as fp:
+    with open(args.rf_config , encoding="utf-8") as fp:
         rf_config = json.load(fp)
     run.config.update(rf_config)
 
@@ -74,6 +74,7 @@ def go(args):
     ######################################
     # Fit the pipeline sk_pipe by calling the .fit method on X_train and y_train
     # YOUR CODE HERE
+    sk_pipe.fit(X_train, y_train)
     ######################################
 
     # Compute r2 and MAE
@@ -98,6 +99,9 @@ def go(args):
     signature = mlflow.models.infer_signature(X_val, y_pred)
     mlflow.sklearn.save_model(
         # YOUR CODE HERE
+        sk_pipe,
+        "random_forest_dir",
+        serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,
         signature = signature,
         input_example = X_train.iloc[:5]
     )
@@ -122,6 +126,7 @@ def go(args):
     run.summary['r2'] = r_squared
     # Now save the variable mae under the key "mae".
     # YOUR CODE HERE
+    run.summary['mae'] = mae
     ######################################
 
     # Upload to W&B the feture importance visualization
@@ -165,6 +170,8 @@ def get_inference_pipeline(rf_config, max_tfidf_features):
     # 2 - A OneHotEncoder() step to encode the variable
     non_ordinal_categorical_preproc = make_pipeline(
         # YOUR CODE HERE
+        SimpleImputer(strategy="most_frequent"),
+        OneHotEncoder()
     )
     ######################################
 
